@@ -1,13 +1,14 @@
-# Data Sprint Preparation (R)
+# Data-Sprint-Preparation
+A repository made to prepare for SSE CQLA data sprint
 
-Ready-made scripts for the 6-hour data sprint. Each script is self-contained: edit the CONFIG block at the top, run section by section.
-
+Scripts for the 6-hour data sprint (R). Each script is self-contained: edit the CONFIG block at the top and run section by section.
 | Folder | Use when | Scripts |
 |---|---|---|
 | `01_exploration_cleaning` | First hour, any dataset | setup, load/clean, EDA |
 | `02_cross_section` | One observation per unit | t-tests, chi-square, ANOVA, OLS, logit, diagnostics |
 | `03_time_series` | One unit over time | plots, stationarity, ARIMA, VAR/Granger |
 | `04_panel` | Many units over time | pooled/FE/RE, Hausman, clustered SEs |
+| `05_missing_data` | Any dataset with NAs | MCAR/MAR/MNAR diagnosis, deletion, LOCF, interpolation, multiple imputation, sensitivity |
 
 ## Workflow
 1. Run `01_exploration_cleaning/00_setup.R` once on every teammate's machine tonight.
