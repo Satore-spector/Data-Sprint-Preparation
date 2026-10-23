@@ -4,7 +4,8 @@ pkgs <- c("tidyverse", "janitor", "skimr", "naniar", "GGally", "corrplot",
           "fixest", "plm", "tseries", "forecast", "urca", "vars", "zoo", "xts",
           "tidymodels", "ranger", "glmnet", "vip", "lubridate", "scales",
           "patchwork", "rstatix", "readxl", "knitr", "quarto",
-          "mice", "VIM", "missForest", "imputeTS", "sampleSelection")
+          "mice", "VIM", "missForest", "imputeTS", "sampleSelection",
+          "ggridges", "ggrepel", "treemapify", "ggalluvial", "hexbin")
 new <- setdiff(pkgs, rownames(installed.packages()))
 if (length(new)) install.packages(new)
 invisible(lapply(pkgs, library, character.only = TRUE))
