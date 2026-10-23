@@ -4,7 +4,7 @@ Prep repo for the SSE CQLA data sprint. Read this before the sprint starts and h
 
 ## Why this repo exists
 
-We have 6 hours, one dataset we haven't seen, and other teams to beat. Nobody has told us the exact format, so I'm assuming we'll get a dataset and have to explore it, model it and present it in one sitting.
+We'll have limited time, one dataset we haven't seen, and other teams to beat. Nobody has told us the exact format, so I'm assuming we'll get a dataset and have to explore it, model it and present it in one sitting.
 
 Most of that time should go on thinking about the data, not on remembering syntax or hunting for the right package. So I've put together ready-made R scripts for the things we're most likely to need. When we see the data, we open the right script, change the variable names and run it.
 
@@ -37,16 +37,206 @@ Missing data has its own folder because it can change our results without us not
 4. Put outputs (figures, tables) in `out/`. It's gitignored, so share finished figures another way.
 5. Whatever model we run, check it with the diagnostics and a robustness check, and write down what the results mean in real units. Explaining the result matters as much as running it.
 
-Suggested split of the 6 hours:
+## Step by step: a brand-new dataset
 
-| Time | Focus |
-|---|---|
-| 0:00 - 0:30 | Read the brief and data dictionary, agree on the research question |
-| 0:30 - 1:30 | Clean, handle missing data, EDA |
-| 1:30 - 3:30 | Modelling |
-| 3:30 - 4:30 | Diagnostics and robustness |
-| 4:30 - 5:30 | Build the presentation |
-| 5:30 - 6:00 | Rehearse, with no new analysis |
+This is the order most analysts and economists work in. The charts show the decisions. Follow the arrows and use the folder named at each step.
+
+### The big picture
+
+```
+ Read the brief + data dictionary
+              |
+              v
+ What is ONE row?  What is the question?
+              |
+              v
+ Load and clean  ---------------> 01_exploration_cleaning
+              |
+              v
+ Any missing values? -----------> 05_missing_data
+              |
+              v
+ Explore: plots, summaries -----> 01_exploration_cleaning/02_eda.R
+              |
+              v
+ What shape is the data? (chart 1)
+              |
+              v
+ Pick a method (chart 2, 3 or 4)
+              |
+              v
+ Check it, then stress-test it (chart 5)
+              |
+              v
+ Tell the story: what does it mean in real terms?
+```
+
+### Step 1: Understand the data before touching it
+
+Write down three things as a team. What does one row stand for (a person, a firm, a country-year)? What is the outcome we care about? What is the question we are answering? If we cannot say these in one sentence each, stop and ask.
+
+### Step 2: Chart 1, what shape is the data?
+
+```
+ Look at the id and time columns
+              |
+     +--------+---------+
+     |                  |
+ No time column     Has a time column
+     |                  |
+     v            +-----+------+
+ CROSS-SECTION    |            |
+ 02_cross_section One unit    Many units
+                  over time   over time
+                     |            |
+                     v            v
+                TIME SERIES     PANEL
+                03_time_series  04_panel
+```
+
+### Step 3: Chart 2, missing values
+
+```
+ Any NAs?
+    |
+    +-- No --> carry on
+    |
+    Yes
+    |
+ What share is missing?
+    |
+    +-- Over 40% in one column --> think about dropping the column
+    |
+    +-- Under 5%, looks random --> drop those rows (listwise)
+    |
+    +-- More than that
+          |
+          v
+   Is the data ordered (time or panel)?
+          |
+     +----+----+
+     |         |
+    Yes        No
+     |         |
+     v         v
+ Fill inside   Do other variables predict
+ each unit:    the missingness? (Little's test,
+ copy down or  logit on a missing flag)
+ interpolate        |
+ (cap the gap)  +---+---+
+                |       |
+               Yes      No
+                |       |
+                v       v
+        Multiple     Drop rows or
+        imputation   simple fill is OK
+        (mice)
+
+ Not sure why values are missing, or the missing ones might be
+ the high or low values? Impute, then run the sensitivity check
+ in 05_missing_data/03 and say so in the presentation.
+```
+
+### Step 4: Chart 3, cross-section (no time)
+
+```
+ What type is the outcome (y)?
+              |
+   +----------+-----------+-----------+
+   |          |           |           |
+ Number     Yes / No    Count      Just comparing
+ (income)   (default)   (visits)   groups
+   |          |           |           |
+   v          v           v           v
+  OLS       Logit /     Poisson     t-test (2 groups)
+  (use log  Probit      (or neg.    ANOVA (3+ groups)
+  if y is   + marginal  binomial)   chi-square (2 category columns)
+  skewed)   effects
+   |
+   v
+ Robust standard errors, always
+```
+
+### Step 5: Chart 4, time series and panel
+
+```
+ TIME SERIES (one unit)               PANEL (many units)
+ ----------------------               ------------------
+ Plot the series                      Declare id + time
+        |                                    |
+        v                                    v
+ Stationary? (ADF + KPSS)             Run pooled, FE and RE
+        |                                    |
+   +----+----+                               v
+   |         |                       Hausman test
+  Yes        No                              |
+   |         |                       +-------+-------+
+   |   Difference or take            |               |
+   |   log-difference, retest      Rejects       Does not reject
+   |         |                       |               |
+   +----+----+                       v               v
+        |                         Use FE          Use RE
+        v                            |               |
+ One series or several?              +-------+-------+
+        |                                    |
+   +----+-----+                              v
+   |          |                     Cluster SEs by unit, always
+ One        Several
+   |          |
+   v          v
+ ARIMA      VAR + Granger
+ (compare   (two trending series that move together?
+ with a      test cointegration, then use a VECM)
+ naive
+ forecast)
+```
+
+### Step 6: Chart 5, check and stress-test
+
+```
+ Model is run
+      |
+      v
+ Run the diagnostics (04_diagnostics.R, 03_tests_robustness.R)
+      |
+      v
+ Any problem?
+      |
+  +---+---+
+  |       |
+ No      Yes (non-constant variance, serial correlation, outliers)
+  |       |
+  |       v
+  |   Use robust or clustered errors, transform, or fix the specification
+  |       |
+  +---+---+
+      |
+      v
+ Change something small and rerun:
+   - different controls
+   - drop outliers
+   - different missing-data method
+   - a subsample
+      |
+      v
+ Does the main result survive?
+      |
+  +---+---+
+  |       |
+ Yes     No
+  |       |
+  v       v
+ Report  Report that too. Say how fragile it is.
+ it      That is still a good finding.
+```
+
+### Step 7: Tell the story
+
+- Lead with the one finding that answers the question.
+- Say what the number means in real units, such as "one extra year of schooling goes with about 8% higher wages".
+- Say if the result is a link or a cause. Name what could make it wrong.
+- Show three to five clear figures, not twenty.
+- Say how you handled missing data and what you checked.
 
 ## Git rules
 
